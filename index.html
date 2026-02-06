@@ -453,6 +453,7 @@
     const f_priority = qs('#f_priority');
     const f_reminder = qs('#f_reminder');
     const f_description = qs('#f_description');
+    let lastStartDateValue = '';
 
     // populate hours 1..12
     function populateHours(select) {
@@ -764,6 +765,9 @@
       f_allDay.checked = !!ev.isAllDay;
       f_startDate.value = ev.startDate || '';
       f_endDate.value = ev.endDate || '';
+      if (f_startDate.value && !f_endDate.value) {
+        f_endDate.value = f_startDate.value;
+      }
       f_location.value = ev.location || '';
       f_showAs.value = ev.showAs || 'BUSY';
       f_priority.value = ev.priority || 'NORMAL';
@@ -781,6 +785,7 @@
       f_endPeriod.value = e12.period;
 
       toggleAllDayUI();
+      lastStartDateValue = f_startDate.value || '';
 
       // Show modal: remove 'hidden' and add 'flex' so centering works
       modalBackdrop.classList.remove('hidden');
@@ -977,6 +982,13 @@ END:VCALENDAR`;
     btnSaveEvent.addEventListener('click', saveEvent);
     modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeWizardInternal(); });
     f_allDay.addEventListener('change', toggleAllDayUI);
+    f_startDate.addEventListener('change', () => {
+      const startVal = f_startDate.value;
+      if (!f_endDate.value || f_endDate.value === lastStartDateValue) {
+        f_endDate.value = startVal;
+      }
+      lastStartDateValue = startVal;
+    });
 
     // Allow Enter key to save from Title field
     f_title.addEventListener('keydown', (e) => {
