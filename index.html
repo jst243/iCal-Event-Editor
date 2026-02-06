@@ -48,6 +48,12 @@
           Add Event
         </button>
 
+        <button id="btnToggleCsv"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white border-2 border-indigo-200 text-indigo-700 px-6 py-3 rounded-xl hover:bg-indigo-50 transition-all shadow-md font-medium">
+          <i data-lucide="upload" class="w-5 h-5"></i>
+          Import CSV
+        </button>
+
         <button id="btnDownload" disabled
           class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all shadow-md font-medium bg-gray-200 text-gray-400 cursor-not-allowed">
           <i data-lucide="download" class="w-5 h-5"></i>
@@ -104,6 +110,170 @@
             <i data-lucide="square" class="w-4 h-4"></i>
             <span id="toggleAllLabel">Select All</span>
           </button>
+        </div>
+      </div>
+
+      <!-- Quick Add + Presets -->
+      <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 mb-4">
+        <div class="flex flex-col md:flex-row md:items-center gap-3">
+          <div class="flex-1">
+            <label for="qa_title" class="block text-xs font-semibold text-gray-600 mb-1">Title</label>
+            <input id="qa_title" type="text" placeholder="Quick add title"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+          <div>
+            <label for="qa_date" class="block text-xs font-semibold text-gray-600 mb-1">Date</label>
+            <input id="qa_date" type="date"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+          <div>
+            <label for="qa_time" class="block text-xs font-semibold text-gray-600 mb-1">Time</label>
+            <input id="qa_time" type="time"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+          <div class="min-w-[160px]">
+            <label for="qa_preset" class="block text-xs font-semibold text-gray-600 mb-1">Preset</label>
+            <select id="qa_preset"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+            </select>
+          </div>
+          <button id="btnQuickAdd"
+            class="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all font-medium">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            Quick Add
+          </button>
+        </div>
+
+        <div class="mt-3 grid grid-cols-1 md:grid-cols-5 gap-3">
+          <div class="md:col-span-2">
+            <label for="preset_name" class="block text-xs font-semibold text-gray-600 mb-1">New Preset Name</label>
+            <input id="preset_name" type="text" placeholder="Weekly meeting"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+          <div>
+            <label for="preset_duration" class="block text-xs font-semibold text-gray-600 mb-1">Duration (min)</label>
+            <input id="preset_duration" type="number" min="0" step="5" value="60"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+          <div>
+            <label for="preset_reminder" class="block text-xs font-semibold text-gray-600 mb-1">Reminder</label>
+            <select id="preset_reminder"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+              <option value="none">None</option>
+              <option value="0">At time of event</option>
+              <option value="5">5 minutes</option>
+              <option value="15" selected>15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="120">2 hours</option>
+              <option value="1440">1 day</option>
+              <option value="2880">2 days</option>
+              <option value="10080">1 week</option>
+            </select>
+          </div>
+          <div>
+            <label for="preset_showAs" class="block text-xs font-semibold text-gray-600 mb-1">Show As</label>
+            <select id="preset_showAs"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+              <option value="BUSY">Busy</option>
+              <option value="FREE">Free</option>
+              <option value="TENTATIVE">Tentative</option>
+              <option value="OOF">Out of Office</option>
+            </select>
+          </div>
+          <button id="btnSavePreset"
+            class="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-white border-2 border-indigo-200 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-50 transition-all font-medium">
+            <i data-lucide="bookmark" class="w-4 h-4"></i>
+            Save Preset
+          </button>
+        </div>
+      </div>
+
+      <!-- Bulk Edit -->
+      <div id="bulkEditPanel" class="hidden bg-white border border-gray-200 rounded-xl p-4 mb-4">
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <div class="text-sm font-semibold text-gray-700">Bulk Edit Selected</div>
+          <div id="bulkEditCount" class="text-xs text-gray-500">0 selected</div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-6 gap-3">
+          <div>
+            <label for="bulk_date" class="block text-xs font-semibold text-gray-600 mb-1">Date</label>
+            <input id="bulk_date" type="date"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+          <div>
+            <label for="bulk_startTime" class="block text-xs font-semibold text-gray-600 mb-1">Start Time</label>
+            <input id="bulk_startTime" type="time"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+          <div>
+            <label for="bulk_endTime" class="block text-xs font-semibold text-gray-600 mb-1">End Time</label>
+            <input id="bulk_endTime" type="time"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+          <div>
+            <label for="bulk_reminder" class="block text-xs font-semibold text-gray-600 mb-1">Reminder</label>
+            <select id="bulk_reminder"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+              <option value="">No change</option>
+              <option value="none">None</option>
+              <option value="0">At time of event</option>
+              <option value="5">5 minutes</option>
+              <option value="15">15 minutes</option>
+              <option value="30">30 minutes</option>
+              <option value="60">1 hour</option>
+              <option value="120">2 hours</option>
+              <option value="1440">1 day</option>
+              <option value="2880">2 days</option>
+              <option value="10080">1 week</option>
+            </select>
+          </div>
+          <div>
+            <label for="bulk_showAs" class="block text-xs font-semibold text-gray-600 mb-1">Show As</label>
+            <select id="bulk_showAs"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+              <option value="">No change</option>
+              <option value="BUSY">Busy</option>
+              <option value="FREE">Free</option>
+              <option value="TENTATIVE">Tentative</option>
+              <option value="OOF">Out of Office</option>
+            </select>
+          </div>
+          <div class="flex items-end gap-2">
+            <label class="flex items-center gap-2 text-xs font-semibold text-gray-600">
+              <input id="bulk_allDay" type="checkbox" class="w-4 h-4 text-indigo-600 rounded" />
+              All day
+            </label>
+          </div>
+          <button id="btnApplyBulk"
+            class="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all font-medium">
+            Apply to Selected
+          </button>
+        </div>
+      </div>
+
+      <!-- CSV Import -->
+      <div id="csvPanel" class="hidden bg-white border border-gray-200 rounded-xl p-4 mb-4">
+        <div class="text-sm font-semibold text-gray-700 mb-2">Import CSV</div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div class="md:col-span-1">
+            <label for="csv_file" class="block text-xs font-semibold text-gray-600 mb-1">Upload CSV</label>
+            <input id="csv_file" type="file" accept=".csv,text/csv"
+              class="w-full text-sm text-gray-700" />
+          </div>
+          <div class="md:col-span-2">
+            <label for="csv_text" class="block text-xs font-semibold text-gray-600 mb-1">Or paste CSV</label>
+            <textarea id="csv_text" rows="3" placeholder="title,startDate,startTime,endDate,endTime,location,description,allDay,reminder,showAs,priority"
+              class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"></textarea>
+          </div>
+        </div>
+        <div class="flex items-center gap-2 mt-3">
+          <button id="btnImportCsv"
+            class="inline-flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all font-medium">
+            <i data-lucide="upload" class="w-4 h-4"></i>
+            Import
+          </button>
+          <div class="text-xs text-gray-500">Headers supported: title,startDate,startTime,endDate,endTime,location,description,allDay,reminder,showAs,priority</div>
         </div>
       </div>
 
@@ -312,7 +482,8 @@
       editingId: null,
       selectedIds: new Set(),
       showWizard: false,
-      view: 'cards' // 'cards' | 'list' | 'calendar'
+      view: 'cards', // 'cards' | 'list' | 'calendar'
+      presets: []
     };
 
     const qs = (sel, el = document) => el.querySelector(sel);
@@ -367,6 +538,64 @@
       if (n % 60 === 0) return `${n / 60} hr`;
       return `${n} min`;
     }
+    function addMinutesToTime(time24, minutesToAdd) {
+      if (!time24) return '';
+      const [h, m] = time24.split(':').map(v => parseInt(v, 10));
+      const total = (h * 60 + m + minutesToAdd) % (24 * 60);
+      const hh = Math.floor(total / 60).toString().padStart(2, '0');
+      const mm = (total % 60).toString().padStart(2, '0');
+      return `${hh}:${mm}`;
+    }
+    function parseCsv(text) {
+      const rows = [];
+      let row = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (c === '"') {
+          if (inQuotes && text[i + 1] === '"') {
+            current += '"';
+            i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (c === ',' && !inQuotes) {
+          row.push(current.trim());
+          current = '';
+        } else if ((c === '\n' || c === '\r') && !inQuotes) {
+          if (current.length || row.length) {
+            row.push(current.trim());
+            rows.push(row);
+            row = [];
+            current = '';
+          }
+        } else {
+          current += c;
+        }
+      }
+      if (current.length || row.length) {
+        row.push(current.trim());
+        rows.push(row);
+      }
+      return rows.filter(r => r.some(cell => cell !== ''));
+    }
+    function loadPresets() {
+      try {
+        const raw = localStorage.getItem('ical_presets');
+        if (raw) state.presets = JSON.parse(raw);
+      } catch (e) {
+        state.presets = [];
+      }
+      if (!state.presets.length) {
+        state.presets = [
+          { id: 'default', name: 'Default', duration: 60, reminder: '15', showAs: 'BUSY' }
+        ];
+      }
+    }
+    function savePresets() {
+      localStorage.setItem('ical_presets', JSON.stringify(state.presets));
+    }
 
     // Map our events to FullCalendar event objects
     function toCalendarEvents() {
@@ -416,6 +645,30 @@
     const deleteLabel = qs('#deleteLabel');
     const btnDownload = qs('#btnDownload');
     const downloadLabel = qs('#downloadLabel');
+    const btnToggleCsv = qs('#btnToggleCsv');
+    const csvPanel = qs('#csvPanel');
+    const qaTitle = qs('#qa_title');
+    const qaDate = qs('#qa_date');
+    const qaTime = qs('#qa_time');
+    const qaPreset = qs('#qa_preset');
+    const btnQuickAdd = qs('#btnQuickAdd');
+    const presetName = qs('#preset_name');
+    const presetDuration = qs('#preset_duration');
+    const presetReminder = qs('#preset_reminder');
+    const presetShowAs = qs('#preset_showAs');
+    const btnSavePreset = qs('#btnSavePreset');
+    const bulkEditPanel = qs('#bulkEditPanel');
+    const bulkEditCount = qs('#bulkEditCount');
+    const bulkDate = qs('#bulk_date');
+    const bulkStartTime = qs('#bulk_startTime');
+    const bulkEndTime = qs('#bulk_endTime');
+    const bulkReminder = qs('#bulk_reminder');
+    const bulkShowAs = qs('#bulk_showAs');
+    const bulkAllDay = qs('#bulk_allDay');
+    const btnApplyBulk = qs('#btnApplyBulk');
+    const csvFile = qs('#csv_file');
+    const csvText = qs('#csv_text');
+    const btnImportCsv = qs('#btnImportCsv');
 
     const listWrap = qs('#listWrap');
     const listBody = qs('#listBody');
@@ -541,8 +794,12 @@
       if (selectedCount > 0) {
         btnDeleteSelected.style.display = '';
         deleteLabel.textContent = `Delete (${selectedCount})`;
+        bulkEditPanel.classList.remove('hidden');
+        bulkEditCount.textContent = `${selectedCount} selected`;
       } else {
         btnDeleteSelected.style.display = 'none';
+        bulkEditPanel.classList.add('hidden');
+        bulkEditCount.textContent = '0 selected';
       }
 
       // Download button enable/disable
@@ -564,6 +821,15 @@
       // Clear Card & List containers each render
       cardsGrid.innerHTML = '';
       listBody.innerHTML  = '';
+
+      // Preset select options
+      qaPreset.innerHTML = '';
+      state.presets.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.name} (${p.duration}m)`;
+        qaPreset.appendChild(opt);
+      });
 
       // Toggle view containers
       if (state.view === 'cards') {
@@ -611,6 +877,10 @@
                     class="flex-1 text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition-colors font-medium">
                     Edit
                   </button>
+                  <button data-action="duplicate"
+                    class="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                    Duplicate
+                  </button>
                   <button data-action="delete"
                     class="text-xs text-red-600 hover:text-red-800 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors font-medium">
                     Delete
@@ -627,6 +897,7 @@
             render();
           });
           card.querySelector('[data-action="edit"]').addEventListener('click', () => openWizard(ev.id));
+          card.querySelector('[data-action="duplicate"]').addEventListener('click', () => duplicateEvent(ev.id));
           card.querySelector('[data-action="delete"]').addEventListener('click', (e) => { e.stopPropagation(); removeEvent(ev.id); });
 
           cardsGrid.appendChild(card);
@@ -672,6 +943,10 @@
                   class="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition-colors font-medium">
                   Edit
                 </button>
+                <button data-action="duplicate"
+                  class="text-xs bg-gray-100 text-gray-700 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition-colors font-medium">
+                  Duplicate
+                </button>
                 <button data-action="delete"
                   class="text-xs text-red-600 hover:text-red-800 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors font-medium">
                   Delete
@@ -685,6 +960,7 @@
             render();
           });
           tr.querySelector('[data-action="edit"]').addEventListener('click', () => openWizard(ev.id));
+          tr.querySelector('[data-action="duplicate"]').addEventListener('click', () => duplicateEvent(ev.id));
           tr.querySelector('[data-action="delete"]').addEventListener('click', () => removeEvent(ev.id));
 
           listBody.appendChild(tr);
@@ -738,6 +1014,20 @@
       render();
     }
 
+    function duplicateEvent(id) {
+      const ev = state.events.find(e => e.id === id);
+      if (!ev) return;
+      const copy = {
+        ...ev,
+        id: nanoid(),
+        title: ev.title ? `${ev.title} (Copy)` : 'Untitled Event',
+        isNew: false
+      };
+      state.events.push(copy);
+      openWizard(copy.id);
+      render();
+    }
+
     function deleteSelected() {
       if (state.selectedIds.size === 0) return;
       state.events = state.events.filter(e => !state.selectedIds.has(e.id));
@@ -748,6 +1038,147 @@
     function toggleSelectAll() {
       if (state.selectedIds.size === state.events.length) state.selectedIds.clear();
       else state.selectedIds = new Set(state.events.map(e => e.id));
+      render();
+    }
+
+    function applyBulkEdit() {
+      if (state.selectedIds.size === 0) return;
+      const dateVal = bulkDate.value;
+      const startVal = bulkStartTime.value;
+      const endVal = bulkEndTime.value;
+      const reminderVal = bulkReminder.value;
+      const showAsVal = bulkShowAs.value;
+      const allDayVal = bulkAllDay.checked;
+
+      state.events = state.events.map(ev => {
+        if (!state.selectedIds.has(ev.id)) return ev;
+        const updated = { ...ev };
+        if (dateVal) {
+          updated.startDate = dateVal;
+          updated.endDate = dateVal;
+        }
+        if (allDayVal) {
+          updated.isAllDay = true;
+          updated.startTime = '';
+          updated.endTime = '';
+        } else {
+          if (startVal) {
+            updated.isAllDay = false;
+            updated.startTime = startVal;
+          }
+          if (endVal) {
+            updated.isAllDay = false;
+            updated.endTime = endVal;
+          }
+        }
+        if (reminderVal !== '') updated.reminder = reminderVal;
+        if (showAsVal !== '') updated.showAs = showAsVal;
+        return updated;
+      });
+      render();
+    }
+
+    function quickAddEvent() {
+      const title = qaTitle.value.trim();
+      const date = qaDate.value;
+      const time = qaTime.value;
+      if (!title || !date || !time) {
+        alert('Quick Add requires title, date, and time.');
+        return;
+      }
+      const presetId = qaPreset.value;
+      const preset = state.presets.find(p => p.id === presetId) || state.presets[0];
+      const duration = preset ? parseInt(preset.duration, 10) || 0 : 0;
+      const endTime = duration ? addMinutesToTime(time, duration) : time;
+
+      const newEvent = {
+        id: nanoid(),
+        title,
+        startDate: date,
+        startTime: time,
+        endDate: date,
+        endTime,
+        location: '',
+        description: '',
+        isAllDay: false,
+        reminder: preset ? preset.reminder : '15',
+        showAs: preset ? preset.showAs : 'BUSY',
+        priority: 'NORMAL',
+        isNew: false
+      };
+      state.events.push(newEvent);
+      qaTitle.value = '';
+      render();
+    }
+
+    function savePresetFromForm() {
+      const name = presetName.value.trim();
+      if (!name) {
+        alert('Preset name is required.');
+        return;
+      }
+      const duration = parseInt(presetDuration.value, 10);
+      const preset = {
+        id: nanoid(),
+        name,
+        duration: Number.isFinite(duration) ? duration : 60,
+        reminder: presetReminder.value,
+        showAs: presetShowAs.value
+      };
+      state.presets.push(preset);
+      savePresets();
+      presetName.value = '';
+      render();
+    }
+
+    function importCsvText(text) {
+      const rows = parseCsv(text);
+      if (!rows.length) return;
+      const header = rows[0].map(h => h.toLowerCase());
+      const hasHeader = header.includes('title') || header.includes('startdate');
+      const dataRows = hasHeader ? rows.slice(1) : rows;
+      const idx = (name) => header.indexOf(name);
+
+      dataRows.forEach(r => {
+        if (!r.length) return;
+        const get = (name, fallbackIdx) => {
+          if (hasHeader) {
+            const i = idx(name);
+            return i >= 0 ? r[i] : '';
+          }
+          return r[fallbackIdx] || '';
+        };
+
+        const title = get('title', 0).trim();
+        const startDate = get('startdate', 1).trim();
+        const startTime = get('starttime', 2).trim();
+        const endDate = get('enddate', 3).trim() || startDate;
+        const endTime = get('endtime', 4).trim() || startTime;
+        const location = get('location', 5).trim();
+        const description = get('description', 6).trim();
+        const allDayRaw = get('allday', 7).trim().toLowerCase();
+        const reminder = get('reminder', 8).trim() || '15';
+        const showAs = (get('showas', 9).trim() || 'BUSY').toUpperCase();
+        const priority = (get('priority', 10).trim() || 'NORMAL').toUpperCase();
+        const isAllDay = allDayRaw === 'true' || allDayRaw === '1' || allDayRaw === 'yes';
+
+        if (!title || !startDate) return;
+        state.events.push({
+          id: nanoid(),
+          title,
+          startDate,
+          startTime: isAllDay ? '' : startTime,
+          endDate,
+          endTime: isAllDay ? '' : endTime,
+          location,
+          description,
+          isAllDay,
+          reminder,
+          showAs,
+          priority,
+          isNew: false
+        });
+      });
       render();
     }
 
@@ -948,6 +1379,29 @@ END:VCALENDAR`;
     btnDownloadEl.addEventListener('click', downloadICalFile);
     btnToggleAll.addEventListener('click', toggleSelectAll);
     btnDeleteSelected.addEventListener('click', deleteSelected);
+    btnToggleCsv.addEventListener('click', () => {
+      csvPanel.classList.toggle('hidden');
+      if (!csvPanel.classList.contains('hidden')) {
+        csvText.focus();
+      }
+    });
+    btnQuickAdd.addEventListener('click', quickAddEvent);
+    btnSavePreset.addEventListener('click', savePresetFromForm);
+    btnApplyBulk.addEventListener('click', applyBulkEdit);
+    btnImportCsv.addEventListener('click', () => {
+      const text = csvText.value.trim();
+      if (text) {
+        importCsvText(text);
+        csvText.value = '';
+      }
+    });
+    csvFile.addEventListener('change', async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      importCsvText(text);
+      csvFile.value = '';
+    });
 
     viewCardsBtn.addEventListener('click', () => {
       state.view = 'cards';
@@ -996,6 +1450,7 @@ END:VCALENDAR`;
     });
 
     // Initial render & icons
+    loadPresets();
     render();
     if (window.lucide && typeof lucide.createIcons === 'function') {
       lucide.createIcons();
