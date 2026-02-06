@@ -1,0 +1,993 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Bulk iCal Generator (Cards • List • Calendar)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- TailwindCSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons (UMD) -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <!-- FullCalendar (global builds) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+  <style>
+    /* Mobile modal fullscreen body height helper */
+    @media (max-width: 640px) {
+      .modal-body { height: calc(100vh - 136px); } /* header+footer approx */
+    }
+    /* Small tweak so calendar fits nicely inside our panel */
+    #calendar { --fc-border-color: #e5e7eb; } /* Tailwind gray-200 for grid lines */
+  </style>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4 md:p-8">
+  <div class="max-w-7xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6 border border-gray-100">
+      <div class="flex items-center gap-4 mb-4">
+        <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl shadow-lg">
+          <i data-lucide="calendar" class="w-8 h-8 text-white"></i>
+        </div>
+        <div>
+          <h1 class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            Bulk iCal Generator
+          </h1>
+          <p class="text-gray-600 text-sm mt-1">Create multiple calendar events in one go</p>
+        </div>
+      </div>
+
+      <!-- Actions: stack on small, inline on md+ -->
+      <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3 mt-6">
+        <button id="btnAdd"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-6 py-3 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-md hover:shadow-lg font-medium">
+          <i data-lucide="plus" class="w-5 h-5"></i>
+          Add Event
+        </button>
+
+        <button id="btnDownload" disabled
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all shadow-md font-medium bg-gray-200 text-gray-400 cursor-not-allowed">
+          <i data-lucide="download" class="w-5 h-5"></i>
+          <span id="downloadLabel">Download (0)</span>
+        </button>
+
+        <button id="btnDeleteSelected" style="display:none"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-rose-600 text-white px-6 py-3 rounded-xl hover:from-red-700 hover:to-rose-700 transition-all shadow-md hover:shadow-lg font-medium">
+          <i data-lucide="trash-2" class="w-5 h-5"></i>
+          <span id="deleteLabel">Delete (0)</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="emptyState" class="bg-white rounded-2xl shadow-xl p-8 sm:p-12 border border-gray-100 text-center">
+      <div class="bg-gradient-to-br from-indigo-100 to-purple-100 w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+        <i data-lucide="calendar" class="w-8 h-8 sm:w-10 sm:h-10 text-indigo-600"></i>
+      </div>
+      <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-3">Ready to Create Events</h3>
+      <p class="text-gray-600 mb-8 max-w-md mx-auto">
+        Tap “Add Event” to create a calendar invite. Add as many as you need and download them all at once.
+      </p>
+    </div>
+
+    <!-- Events panel -->
+    <div id="eventsPanel" class="hidden bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+      <!-- Header with view toggle -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div class="flex items-center gap-2">
+          <h3 class="text-xl font-bold text-gray-800">Events</h3>
+          <span id="eventsCount" class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-semibold">0</span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <!-- View toggle -->
+          <div class="inline-flex rounded-lg border border-gray-200 overflow-hidden">
+            <button id="viewCards"
+              class="px-3 py-1.5 text-sm bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              Cards
+            </button>
+            <button id="viewList"
+              class="px-3 py-1.5 text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              List
+            </button>
+            <button id="viewCalendar"
+              class="px-3 py-1.5 text-sm bg-gray-50 text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              Calendar
+            </button>
+          </div>
+
+          <button id="btnToggleAll"
+            class="self-start sm:self-auto inline-flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium hover:bg-indigo-50 px-3 py-2 rounded-lg transition-colors">
+            <i data-lucide="square" class="w-4 h-4"></i>
+            <span id="toggleAllLabel">Select All</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Cards Grid -->
+      <div id="cardsGrid" class="grid gap-4" style="grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));"></div>
+
+      <!-- Compact List -->
+      <div id="listWrap" class="hidden overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="text-left text-gray-500">
+            <tr class="border-b border-gray-200">
+              <th class="py-2 pr-2 w-10">
+                <button id="listToggleAll" class="text-indigo-600 hover:text-indigo-800" title="Select All">
+                  <i data-lucide="square" class="w-4 h-4"></i>
+                </button>
+              </th>
+              <th class="py-2 pr-2 min-w-[180px]">Title</th>
+              <th class="py-2 pr-2 min-w-[120px]">Date</th>
+              <th class="py-2 pr-2 min-w-[100px]">Time</th>
+              <th class="py-2 pr-2 min-w-[160px] hidden sm:table-cell">Location</th>
+              <th class="py-2 pr-2 min-w-[110px]">Show As</th>
+              <th class="py-2 pr-2 min-w-[90px] hidden md:table-cell">Reminder</th>
+              <th class="py-2 pr-2 min-w-[90px] hidden md:table-cell">Priority</th>
+              <th class="py-2 pl-2 min-w-[120px]">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="listBody" class="align-top"></tbody>
+        </table>
+      </div>
+
+      <!-- Calendar View -->
+      <div id="calendarWrap" class="hidden">
+        <div id="calendar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal (Wizard) -->
+  <div id="modalBackdrop" class="fixed inset-0 bg-black/50 items-center justify-center p-0 sm:p-4 z-50 hidden">
+    <div class="bg-white sm:rounded-2xl sm:shadow-2xl w-full sm:max-w-3xl sm:h-[90vh] h-full flex flex-col"
+         role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+      <!-- Header -->
+      <div class="bg-white border-b border-gray-200 p-4 sm:p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="bg-gradient-to-br from-indigo-500 to-purple-600 p-2 rounded-lg">
+              <i data-lucide="edit-3" class="w-5 h-5 text-white"></i>
+            </div>
+            <div>
+              <h3 id="modalTitle" class="text-xl sm:text-2xl font-bold text-gray-800">Create New Event</h3>
+              <p id="modalDesc" class="text-sm text-gray-500">Fill in the event details</p>
+            </div>
+          </div>
+          <button id="btnCloseModal"
+            class="text-gray-400 hover:text-gray-600 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Close">
+            <i data-lucide="x" class="w-6 h-6"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="overflow-y-auto flex-1 p-4 sm:p-6 modal-body">
+        <div class="space-y-6">
+          <!-- Title -->
+          <div>
+            <label for="f_title" class="block text-sm font-semibold text-gray-700 mb-2">Event Title *</label>
+            <input id="f_title" type="text" placeholder="Team Meeting, Conference Call, etc."
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+
+          <!-- All day -->
+          <div class="bg-gray-50 p-4 rounded-xl">
+            <label class="flex items-center gap-3 cursor-pointer">
+              <input id="f_allDay" type="checkbox"
+                class="w-5 h-5 text-indigo-600 rounded focus:ring-2 focus:ring-indigo-500" />
+              <span class="text-sm font-semibold text-gray-700">All day event</span>
+            </label>
+          </div>
+
+          <!-- Dates / Times -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label for="f_startDate" class="block text-sm font-semibold text-gray-700 mb-2">Start Date *</label>
+              <input id="f_startDate" type="date"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+            </div>
+
+            <div id="startTimeBlock">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">Start Time *</label>
+              <div class="grid grid-cols-3 gap-2">
+                <select id="f_startHour"
+                  class="px-3 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"></select>
+                <select id="f_startMinute"
+                  class="px-3 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                  <option>00</option><option>15</option><option>30</option><option>45</option>
+                </select>
+                <select id="f_startPeriod"
+                  class="px-3 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                  <option>AM</option><option>PM</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label for="f_endDate" class="block text-sm font-semibold text-gray-700 mb-2">End Date</label>
+              <input id="f_endDate" type="date"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+            </div>
+
+            <div id="endTimeBlock">
+              <label class="block text-sm font-semibold text-gray-700 mb-2">End Time</label>
+              <div class="grid grid-cols-3 gap-2">
+                <select id="f_endHour"
+                  class="px-3 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"></select>
+                <select id="f_endMinute"
+                  class="px-3 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                  <option>00</option><option>15</option><option>30</option><option>45</option>
+                </select>
+                <select id="f_endPeriod"
+                  class="px-3 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                  <option>AM</option><option>PM</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- Location -->
+          <div>
+            <label for="f_location" class="block text-sm font-semibold text-gray-700 mb-2">Location</label>
+            <input id="f_location" type="text" placeholder="Conference Room A, Zoom, or address"
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+          </div>
+
+          <!-- Show As / Priority / Reminder -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label for="f_showAs" class="block text-sm font-semibold text-gray-700 mb-2">Show As</label>
+              <select id="f_showAs"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                <option value="BUSY">Busy</option>
+                <option value="FREE">Free</option>
+                <option value="TENTATIVE">Tentative</option>
+                <option value="OOF">Out of Office</option>
+              </select>
+            </div>
+            <div>
+              <label for="f_priority" class="block text-sm font-semibold text-gray-700 mb-2">Priority</label>
+              <select id="f_priority"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                <option value="HIGH">High</option>
+                <option value="NORMAL" selected>Normal</option>
+                <option value="LOW">Low</option>
+              </select>
+            </div>
+            <div>
+              <label for="f_reminder" class="block text-sm font-semibold text-gray-700 mb-2">Reminder</label>
+              <select id="f_reminder"
+                class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all">
+                <option value="none">None</option>
+                <option value="0">At time of event</option>
+                <option value="5">5 minutes</option>
+                <option value="15" selected>15 minutes</option>
+                <option value="30">30 minutes</option>
+                <option value="60">1 hour</option>
+                <option value="120">2 hours</option>
+                <option value="1440">1 day</option>
+                <option value="2880">2 days</option>
+                <option value="10080">1 week</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div>
+            <label for="f_description" class="block text-sm font-semibold text-gray-700 mb-2">Description / Notes</label>
+            <textarea id="f_description" rows="5" placeholder="Add meeting agenda, notes, or additional details..."
+              class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="bg-white border-t border-gray-200 p-4 sm:p-6">
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button id="btnSaveEvent"
+            class="w-full sm:flex-1 inline-flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white px-6 py-3 rounded-xl hover:from-indigo-700 hover:to-indigo-800 transition-all shadow-md hover:shadow-lg font-semibold">
+            <i data-lucide="save" class="w-5 h-5"></i>
+            Save Event
+          </button>
+          <button id="btnCancelEvent"
+            class="w-full sm:w-auto px-6 py-3 rounded-xl border-2 border-gray-300 text-gray-700 hover:bg-gray-50 transition-all font-semibold">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ------------------------------
+    // State & utilities (parity with your TSX)
+    // ------------------------------
+    const state = {
+      events: [],
+      editingId: null,
+      selectedIds: new Set(),
+      showWizard: false,
+      view: 'cards' // 'cards' | 'list' | 'calendar'
+    };
+
+    const qs = (sel, el = document) => el.querySelector(sel);
+    function nanoid() { return Date.now() + Math.floor(Math.random() * 1e6); }
+
+    function convertTo24Hour(hour, minute, period) {
+      let h = parseInt(hour, 10);
+      if (period === 'PM' && h !== 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      return `${h.toString().padStart(2, '0')}:${minute}`;
+    }
+    function convertTo12Hour(time24) {
+      if (!time24) return { hour: '12', minute: '00', period: 'AM' };
+      const [h, m] = time24.split(':');
+      let hour = parseInt(h, 10);
+      const period = hour >= 12 ? 'PM' : 'AM';
+      if (hour === 0) hour = 12; else if (hour > 12) hour -= 12;
+      return { hour: String(hour), minute: m, period };
+    }
+    function formatDateTime(date, time, isAllDay) {
+      if (isAllDay) return date.replace(/-/g, '');
+      const datetime = `${date}T${time}:00`;
+      return datetime.replace(/[-:]/g, '');
+    }
+    function getPriorityNumber(p) { return p === 'HIGH' ? '1' : p === 'LOW' ? '9' : '5'; }
+    function validEvent(e) { return !!(e.title && e.startDate && (e.isAllDay || e.startTime)); }
+    function formatDateDisplay(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr + 'T00:00:00');
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function getStatusBadgeColor(showAs) {
+      switch (showAs) {
+        case 'BUSY': return 'bg-red-100 text-red-700';
+        case 'FREE': return 'bg-green-100 text-green-700';
+        case 'TENTATIVE': return 'bg-yellow-100 text-yellow-700';
+        case 'OOF': return 'bg-purple-100 text-purple-700';
+        default: return 'bg-gray-100 text-gray-700';
+      }
+    }
+    function formatTimeLabel(ev) {
+      if (ev.isAllDay) return 'All day';
+      if (!ev.startTime) return 'No time';
+      const { hour, minute, period } = convertTo12Hour(ev.startTime);
+      return `${hour}:${minute} ${period}`;
+    }
+    function formatReminderLabel(rem) {
+      if (!rem || rem === 'none') return 'None';
+      const n = parseInt(rem, 10);
+      if (n < 60) return `${n} min`;
+      if (n % 1440 === 0) return `${n / 1440} day${n === 1440 ? '' : 's'}`;
+      if (n % 60 === 0) return `${n / 60} hr`;
+      return `${n} min`;
+    }
+
+    // Map our events to FullCalendar event objects
+    function toCalendarEvents() {
+      return state.events.map(ev => {
+        const allDay = !!ev.isAllDay;
+        let startStr = ev.startDate;
+        let endStr = ev.endDate || ev.startDate;
+
+        if (allDay) {
+          // FullCalendar expects all-day 'end' to be exclusive; add 1 day
+          const d = new Date(endStr + 'T00:00:00');
+          d.setDate(d.getDate() + 1);
+          endStr = d.toISOString().slice(0, 10);
+        } else {
+          startStr += 'T' + (ev.startTime || '00:00');
+          endStr   += 'T' + (ev.endTime   || ev.startTime || '00:00');
+        }
+
+        return {
+          id: String(ev.id),
+          title: ev.title || 'Untitled Event',
+          start: startStr,
+          end: endStr,
+          allDay,
+          extendedProps: {
+            internalId: ev.id,
+            location: ev.location,
+            showAs: ev.showAs,
+            priority: ev.priority,
+            reminder: ev.reminder,
+            description: ev.description
+          }
+        };
+      });
+    }
+
+    // ------------------------------
+    // DOM refs
+    // ------------------------------
+    const emptyState = qs('#emptyState');
+    const eventsPanel = qs('#eventsPanel');
+    const eventsCount = qs('#eventsCount');
+    const cardsGrid = qs('#cardsGrid');
+    const btnToggleAll = qs('#btnToggleAll');
+    const toggleAllLabel = qs('#toggleAllLabel');
+    const btnDeleteSelected = qs('#btnDeleteSelected');
+    const deleteLabel = qs('#deleteLabel');
+    const btnDownload = qs('#btnDownload');
+    const downloadLabel = qs('#downloadLabel');
+
+    const listWrap = qs('#listWrap');
+    const listBody = qs('#listBody');
+    const listToggleAllBtn = qs('#listToggleAll');
+
+    const calendarWrap = qs('#calendarWrap');
+    const calendarEl = qs('#calendar');
+
+    // View toggles
+    const viewCardsBtn = qs('#viewCards');
+    const viewListBtn = qs('#viewList');
+    const viewCalendarBtn = qs('#viewCalendar');
+
+    // Modal refs
+    const modalBackdrop = qs('#modalBackdrop');
+    const modalTitle = qs('#modalTitle');
+    const btnCloseModal = qs('#btnCloseModal');
+    const btnCancelEvent = qs('#btnCancelEvent');
+    const btnSaveEvent = qs('#btnSaveEvent');
+
+    const f_title = qs('#f_title');
+    const f_allDay = qs('#f_allDay');
+    const f_startDate = qs('#f_startDate');
+    const f_endDate = qs('#f_endDate');
+    const startTimeBlock = qs('#startTimeBlock');
+    const endTimeBlock = qs('#endTimeBlock');
+    const f_startHour = qs('#f_startHour');
+    const f_startMinute = qs('#f_startMinute');
+    const f_startPeriod = qs('#f_startPeriod');
+    const f_endHour = qs('#f_endHour');
+    const f_endMinute = qs('#f_endMinute');
+    const f_endPeriod = qs('#f_endPeriod');
+    const f_location = qs('#f_location');
+    const f_showAs = qs('#f_showAs');
+    const f_priority = qs('#f_priority');
+    const f_reminder = qs('#f_reminder');
+    const f_description = qs('#f_description');
+
+    // populate hours 1..12
+    function populateHours(select) {
+      select.innerHTML = '';
+      for (let i = 1; i <= 12; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = String(i);
+        select.appendChild(opt);
+      }
+    }
+    populateHours(f_startHour);
+    populateHours(f_endHour);
+
+    // ------------------------------
+    // Calendar setup
+    // ------------------------------
+    let fc = null;
+    function ensureCalendar() {
+      if (fc) return;
+      fc = new FullCalendar.Calendar(calendarEl, {
+        initialView: 'dayGridMonth',
+        height: 'auto',
+        headerToolbar: {
+          left: 'prev,next today',
+          center: 'title',
+          right: 'dayGridMonth,timeGridWeek,timeGridDay'
+        },
+        // Click a date to add a new draft event and open the editor
+        dateClick: (info) => {
+          const newEvent = {
+            id: nanoid(),
+            title: '',
+            startDate: info.dateStr,
+            startTime: '',
+            endDate: info.dateStr,
+            endTime: '',
+            location: '',
+            description: '',
+            isAllDay: true,
+            reminder: '15',
+            showAs: 'BUSY',
+            priority: 'NORMAL',
+            isNew: true
+          };
+          state.events.push(newEvent);
+          openWizard(newEvent.id);
+          render(); // refresh other views/counts
+        },
+        // Click an existing event to edit it
+        eventClick: (arg) => {
+          const internalId = arg.event.extendedProps.internalId;
+          if (internalId != null) {
+            openWizard(internalId);
+          }
+        },
+        events: []
+      });
+      fc.render();
+    }
+
+    function refreshCalendarEvents() {
+      if (!fc) return;
+      fc.removeAllEvents();
+      fc.addEventSource(toCalendarEvents());
+    }
+
+    // ------------------------------
+    // Rendering
+    // ------------------------------
+    function render() {
+      // Toggle empty/list panels
+      if (state.events.length === 0) {
+        emptyState.classList.remove('hidden');
+        eventsPanel.classList.add('hidden');
+      } else {
+        emptyState.classList.add('hidden');
+        eventsPanel.classList.remove('hidden');
+      }
+
+      eventsCount.textContent = state.events.length;
+
+      // Selected count UI
+      const selectedCount = state.selectedIds.size;
+      if (selectedCount > 0) {
+        btnDeleteSelected.style.display = '';
+        deleteLabel.textContent = `Delete (${selectedCount})`;
+      } else {
+        btnDeleteSelected.style.display = 'none';
+      }
+
+      // Download button enable/disable
+      const validCount = state.events.filter(validEvent).length;
+      btnDownload.disabled = validCount === 0;
+      btnDownload.className = `w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all shadow-md font-medium ${
+        validCount > 0
+          ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 hover:shadow-lg'
+          : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+      }`;
+      downloadLabel.textContent = `Download (${validCount})`;
+
+      // Toggle all label/icon (shared)
+      const allSelected = state.events.length > 0 && selectedCount === state.events.length;
+      toggleAllLabel.textContent = allSelected ? 'Deselect All' : 'Select All';
+      const icon = btnToggleAll.querySelector('i');
+      if (icon) icon.setAttribute('data-lucide', allSelected ? 'check-square' : 'square');
+
+      // Clear Card & List containers each render
+      cardsGrid.innerHTML = '';
+      listBody.innerHTML  = '';
+
+      // Toggle view containers
+      if (state.view === 'cards') {
+        cardsGrid.classList.remove('hidden');
+        listWrap.classList.add('hidden');
+        calendarWrap.classList.add('hidden');
+
+        state.events.forEach(ev => {
+          const isSelected = state.selectedIds.has(ev.id);
+          const summaryDate = ev.startDate || 'No date';
+          const time = formatTimeLabel(ev);
+          const title = ev.title || 'Untitled Event';
+
+          const card = document.createElement('div');
+          card.className = `p-4 rounded-xl transition-all border-2 h-full flex ${
+            isSelected ? 'border-indigo-300 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 bg-white hover:shadow-md'
+          }`;
+
+          card.innerHTML = `
+            <div class="flex items-start gap-3 w-full">
+              <button data-action="toggle-select"
+                class="mt-1 text-gray-400 hover:text-indigo-600 transition-colors" aria-label="Toggle select">
+                <i data-lucide="${isSelected ? 'check-square' : 'square'}" class="w-5 h-5 ${isSelected ? 'text-indigo-600' : ''}"></i>
+              </button>
+
+              <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2 mb-2">
+                  <h4 class="font-semibold text-gray-900 truncate">${title}</h4>
+                </div>
+
+                <div class="space-y-1 text-sm">
+                  <div class="flex items-center gap-2 text-gray-600">
+                    <i data-lucide="clock" class="w-4 h-4 flex-shrink-0"></i>
+                    <span class="truncate">${formatDateDisplay(summaryDate)} • ${time}</span>
+                  </div>
+                  ${ev.location ? `<div class="text-gray-500 truncate">📍 ${ev.location}</div>` : ''}
+                </div>
+
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <span class="text-xs px-2 py-1 rounded-full font-medium ${getStatusBadgeColor(ev.showAs)}">${ev.showAs}</span>
+                </div>
+
+                <div class="mt-3 flex flex-col sm:flex-row gap-2">
+                  <button data-action="edit"
+                    class="flex-1 text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition-colors font-medium">
+                    Edit
+                  </button>
+                  <button data-action="delete"
+                    class="text-xs text-red-600 hover:text-red-800 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+
+          // handlers
+          card.querySelector('[data-action="toggle-select"]').addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (state.selectedIds.has(ev.id)) state.selectedIds.delete(ev.id); else state.selectedIds.add(ev.id);
+            render();
+          });
+          card.querySelector('[data-action="edit"]').addEventListener('click', () => openWizard(ev.id));
+          card.querySelector('[data-action="delete"]').addEventListener('click', (e) => { e.stopPropagation(); removeEvent(ev.id); });
+
+          cardsGrid.appendChild(card);
+        });
+
+      } else if (state.view === 'list') {
+        cardsGrid.classList.add('hidden');
+        listWrap.classList.remove('hidden');
+        calendarWrap.classList.add('hidden');
+
+        state.events.forEach(ev => {
+          const isSelected = state.selectedIds.has(ev.id);
+          const title = ev.title || 'Untitled Event';
+          const dateLabel = ev.startDate ? formatDateDisplay(ev.startDate) : '—';
+          const timeLabel = formatTimeLabel(ev);
+          const reminderLabel = formatReminderLabel(ev.reminder);
+          const prio = (ev.priority || 'NORMAL').toUpperCase();
+
+          const tr = document.createElement('tr');
+          tr.className = 'border-b border-gray-100 hover:bg-indigo-50/30';
+
+          tr.innerHTML = `
+            <td class="py-2 pr-2 align-top">
+              <button data-action="toggle-select" class="text-indigo-600 hover:text-indigo-800" title="Toggle select">
+                <i data-lucide="${isSelected ? 'check-square' : 'square'}" class="w-4 h-4 ${isSelected ? 'text-indigo-600' : ''}"></i>
+              </button>
+            </td>
+            <td class="py-2 pr-2 align-top">
+              <div class="font-medium text-gray-900 truncate max-w-[260px]">${title}</div>
+              ${ev.description ? `<div class="text-gray-500 truncate max-w-[340px]">${ev.description}</div>` : ''}
+            </td>
+            <td class="py-2 pr-2 align-top text-gray-700">${dateLabel}</td>
+            <td class="py-2 pr-2 align-top text-gray-700">${timeLabel}</td>
+            <td class="py-2 pr-2 align-top text-gray-600 hidden sm:table-cell truncate max-w-[220px]">${ev.location || '—'}</td>
+            <td class="py-2 pr-2 align-top">
+              <span class="text-xs px-2 py-1 rounded-full font-medium ${getStatusBadgeColor(ev.showAs)}">${ev.showAs}</span>
+            </td>
+            <td class="py-2 pr-2 align-top text-gray-700 hidden md:table-cell">${reminderLabel}</td>
+            <td class="py-2 pr-2 align-top text-gray-700 hidden md:table-cell">${prio}</td>
+            <td class="py-2 pl-2 align-top">
+              <div class="inline-flex gap-1">
+                <button data-action="edit"
+                  class="text-xs bg-indigo-100 text-indigo-700 px-3 py-1.5 rounded-lg hover:bg-indigo-200 transition-colors font-medium">
+                  Edit
+                </button>
+                <button data-action="delete"
+                  class="text-xs text-red-600 hover:text-red-800 px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors font-medium">
+                  Delete
+                </button>
+              </div>
+            </td>
+          `;
+
+          tr.querySelector('[data-action="toggle-select"]').addEventListener('click', () => {
+            if (state.selectedIds.has(ev.id)) state.selectedIds.delete(ev.id); else state.selectedIds.add(ev.id);
+            render();
+          });
+          tr.querySelector('[data-action="edit"]').addEventListener('click', () => openWizard(ev.id));
+          tr.querySelector('[data-action="delete"]').addEventListener('click', () => removeEvent(ev.id));
+
+          listBody.appendChild(tr);
+        });
+
+      } else {
+        // CALENDAR view
+        cardsGrid.classList.add('hidden');
+        listWrap.classList.add('hidden');
+        calendarWrap.classList.remove('hidden');
+
+        ensureCalendar();
+        refreshCalendarEvents();
+      }
+
+      // Refresh icons
+      if (window.lucide && typeof lucide.createIcons === 'function') {
+        lucide.createIcons();
+      }
+    }
+
+    // ------------------------------
+    // CRUD & selection
+    // ------------------------------
+    function addEvent() {
+      const newEvent = {
+        id: nanoid(),
+        title: '',
+        startDate: '',
+        startTime: '',
+        endDate: '',
+        endTime: '',
+        location: '',
+        description: '',
+        isAllDay: false,
+        reminder: '15',
+        showAs: 'BUSY',
+        priority: 'NORMAL',
+        isNew: true
+      };
+      state.events.push(newEvent);
+      state.editingId = newEvent.id;
+      openWizard(newEvent.id);
+      render();
+    }
+
+    function removeEvent(id) {
+      state.events = state.events.filter(e => e.id !== id);
+      state.selectedIds.delete(id);
+      if (state.editingId === id && state.events.length) state.editingId = state.events[0].id;
+      render();
+    }
+
+    function deleteSelected() {
+      if (state.selectedIds.size === 0) return;
+      state.events = state.events.filter(e => !state.selectedIds.has(e.id));
+      state.selectedIds.clear();
+      render();
+    }
+
+    function toggleSelectAll() {
+      if (state.selectedIds.size === state.events.length) state.selectedIds.clear();
+      else state.selectedIds = new Set(state.events.map(e => e.id));
+      render();
+    }
+
+    // ------------------------------
+    // Wizard (modal)
+    // ------------------------------
+    function openWizard(id) {
+      const ev = state.events.find(e => e.id === id);
+      if (!ev) return;
+      state.editingId = id;
+      state.showWizard = true;
+
+      modalTitle.textContent = ev.isNew ? 'Create New Event' : 'Edit Event';
+      f_title.value = ev.title || '';
+      f_allDay.checked = !!ev.isAllDay;
+      f_startDate.value = ev.startDate || '';
+      f_endDate.value = ev.endDate || '';
+      f_location.value = ev.location || '';
+      f_showAs.value = ev.showAs || 'BUSY';
+      f_priority.value = ev.priority || 'NORMAL';
+      f_reminder.value = ev.reminder ?? '15';
+      f_description.value = ev.description || '';
+
+      const s = convertTo12Hour(ev.startTime || '');
+      f_startHour.value = s.hour;
+      f_startMinute.value = s.minute;
+      f_startPeriod.value = s.period;
+
+      const e12 = convertTo12Hour(ev.endTime || '');
+      f_endHour.value = e12.hour;
+      f_endMinute.value = e12.minute;
+      f_endPeriod.value = e12.period;
+
+      toggleAllDayUI();
+
+      // Show modal: remove 'hidden' and add 'flex' so centering works
+      modalBackdrop.classList.remove('hidden');
+      modalBackdrop.classList.add('flex');
+
+      f_title.focus();
+      if (window.lucide && typeof lucide.createIcons === 'function') lucide.createIcons();
+    }
+
+    function closeWizardInternal() {
+      const ev = state.events.find(e => e.id === state.editingId);
+      // Discard new untitled event on close
+      if (ev && ev.isNew && !ev.title) {
+        state.events = state.events.filter(e => e.id !== state.editingId);
+      }
+      state.showWizard = false;
+      state.editingId = null;
+
+      // Hide modal: add 'hidden' and remove 'flex'
+      modalBackdrop.classList.add('hidden');
+      modalBackdrop.classList.remove('flex');
+
+      render();
+    }
+
+    function saveEvent() {
+      const id = state.editingId;
+      const idx = state.events.findIndex(e => e.id === id);
+      if (idx === -1) return;
+
+      const isAllDay = f_allDay.checked;
+      let startTime = '', endTime = '';
+      if (!isAllDay) {
+        startTime = convertTo24Hour(f_startHour.value, f_startMinute.value, f_startPeriod.value);
+        endTime = convertTo24Hour(f_endHour.value, f_endMinute.value, f_endPeriod.value);
+      }
+
+      const updated = {
+        ...state.events[idx],
+        title: f_title.value.trim(),
+        isAllDay,
+        startDate: f_startDate.value,
+        startTime,
+        endDate: f_endDate.value,
+        endTime,
+        location: f_location.value.trim(),
+        showAs: f_showAs.value,
+        priority: f_priority.value,
+        reminder: f_reminder.value,
+        description: f_description.value,
+        isNew: false
+      };
+
+      if (updated.startDate && !updated.endDate) updated.endDate = updated.startDate;
+
+      state.events.splice(idx, 1, updated);
+      closeWizardInternal();
+      refreshCalendarEvents(); // keep calendar in sync immediately on save
+    }
+
+    function toggleAllDayUI() {
+      const allDay = f_allDay.checked;
+      startTimeBlock.style.display = allDay ? 'none' : '';
+      endTimeBlock.style.display = allDay ? 'none' : '';
+    }
+
+    // ------------------------------
+    // Bulk download ICS
+    // ------------------------------
+    function generateICalEvent(event) {
+      const now = new Date().toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+      const uid = `${event.id}-${now}@bulk-ical-generator`;
+
+      let startDateTime, endDateTime;
+      if (event.isAllDay) {
+        startDateTime = formatDateTime(event.startDate, '', true);
+        endDateTime = formatDateTime(event.endDate || event.startDate, '', true);
+      } else {
+        startDateTime = formatDateTime(event.startDate, event.startTime, false);
+        endDateTime = formatDateTime(event.endDate || event.startDate, event.endTime || event.startTime, false);
+      }
+
+      let ical = `BEGIN:VEVENT
+UID:${uid}
+DTSTAMP:${now}`;
+
+      if (event.isAllDay) {
+        ical += `
+DTSTART;VALUE=DATE:${startDateTime}
+DTEND;VALUE=DATE:${endDateTime}`;
+      } else {
+        ical += `
+DTSTART:${startDateTime}
+DTEND:${endDateTime}`;
+      }
+
+      const title = event.title || 'Untitled Event';
+      ical += `
+SUMMARY:${title}`;
+
+      if (event.location) ical += `\nLOCATION:${event.location}`;
+      if (event.description) {
+        const escaped = event.description.replace(/\n/g, '\\n').replace(/,/g, '\\,');
+        ical += `\nDESCRIPTION:${escaped}`;
+      }
+
+      ical += `
+STATUS:CONFIRMED
+TRANSP:${event.showAs === 'FREE' ? 'TRANSPARENT' : 'OPAQUE'}
+X-MICROSOFT-CDO-BUSYSTATUS:${event.showAs}
+PRIORITY:${getPriorityNumber(event.priority)}`;
+
+      if (event.reminder && event.reminder !== 'none') {
+        ical += `
+BEGIN:VALARM
+TRIGGER:-PT${event.reminder}M
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+END:VALARM`;
+      }
+
+      ical += `
+END:VEVENT`;
+      return ical;
+    }
+
+    function downloadICalFile() {
+      const validEvents = state.events.filter(validEvent);
+      if (validEvents.length === 0) {
+        alert('Please add at least one event with a title, date, and time.');
+        return;
+      }
+      const icalEvents = validEvents.map(generateICalEvent).join('\n');
+      const icalContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Bulk iCal Generator//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Bulk Events
+X-WR-TIMEZONE:UTC
+X-MICROSOFT-CALSCALE:GREGORIAN
+${icalEvents}
+END:VCALENDAR`;
+
+      const blob = new Blob([icalContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'bulk-events.ics';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // ------------------------------
+    // Wire up events
+    // ------------------------------
+    const btnAdd = document.getElementById('btnAdd');
+    const btnDownloadEl = document.getElementById('btnDownload');
+
+    btnAdd.addEventListener('click', addEvent);
+    btnDownloadEl.addEventListener('click', downloadICalFile);
+    btnToggleAll.addEventListener('click', toggleSelectAll);
+    btnDeleteSelected.addEventListener('click', deleteSelected);
+
+    viewCardsBtn.addEventListener('click', () => {
+      state.view = 'cards';
+      viewCardsBtn.classList.add('bg-white');
+      viewListBtn.classList.remove('bg-white');
+      viewCalendarBtn.classList.remove('bg-white');
+      render();
+    });
+    viewListBtn.addEventListener('click', () => {
+      state.view = 'list';
+      viewListBtn.classList.add('bg-white');
+      viewCardsBtn.classList.remove('bg-white');
+      viewCalendarBtn.classList.remove('bg-white');
+      render();
+    });
+    viewCalendarBtn.addEventListener('click', () => {
+      state.view = 'calendar';
+      viewCalendarBtn.classList.add('bg-white');
+      viewCardsBtn.classList.remove('bg-white');
+      viewListBtn.classList.remove('bg-white');
+      render();
+    });
+
+    listToggleAllBtn.addEventListener('click', () => {
+      if (state.selectedIds.size === state.events.length) state.selectedIds.clear();
+      else state.selectedIds = new Set(state.events.map(e => e.id));
+      render();
+    });
+
+    btnCloseModal.addEventListener('click', closeWizardInternal);
+    btnCancelEvent.addEventListener('click', closeWizardInternal);
+    btnSaveEvent.addEventListener('click', saveEvent);
+    modalBackdrop.addEventListener('click', (e) => { if (e.target === modalBackdrop) closeWizardInternal(); });
+    f_allDay.addEventListener('change', toggleAllDayUI);
+
+    // Allow Enter key to save from Title field
+    f_title.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); saveEvent(); }
+    });
+
+    // Initial render & icons
+    render();
+    if (window.lucide && typeof lucide.createIcons === 'function') {
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>
