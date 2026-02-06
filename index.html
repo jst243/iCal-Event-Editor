@@ -268,17 +268,26 @@
           </div>
         </div>
         <div class="flex items-center gap-2 mt-3">
-          <button id="btnImportCsv"
+          <button id="btnImportCsv" type="button"
             class="inline-flex items-center justify-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-all font-medium">
             <i data-lucide="upload" class="w-4 h-4"></i>
             Import
           </button>
-          <button id="btnDownloadCsvTemplate"
+          <button id="btnDownloadCsvTemplate" type="button"
             class="inline-flex items-center justify-center gap-2 bg-white border-2 border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-medium">
             <i data-lucide="download" class="w-4 h-4"></i>
             Download Template
           </button>
           <div class="text-xs text-gray-500">Headers supported: title,startDate,startTime,endDate,endTime,location,description,allDay,reminder,showAs,priority</div>
+        </div>
+        <div id="csvProgressWrap" class="hidden mt-3">
+          <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+            <span id="csvProgressLabel">Importing…</span>
+            <span id="csvProgressPercent">0%</span>
+          </div>
+          <div class="h-2 w-full rounded-full bg-gray-100 overflow-hidden border border-gray-200">
+            <div id="csvProgressBar" class="h-full w-0 bg-green-500 transition-all"></div>
+          </div>
         </div>
       </div>
 
@@ -487,6 +496,7 @@
       editingId: null,
       selectedIds: new Set(),
       showWizard: false,
+      showCsvPanel: false,
       view: 'cards', // 'cards' | 'list' | 'calendar'
       presets: []
     };
@@ -675,6 +685,10 @@
     const csvText = qs('#csv_text');
     const btnImportCsv = qs('#btnImportCsv');
     const btnDownloadCsvTemplate = qs('#btnDownloadCsvTemplate');
+    const csvProgressWrap = qs('#csvProgressWrap');
+    const csvProgressLabel = qs('#csvProgressLabel');
+    const csvProgressPercent = qs('#csvProgressPercent');
+    const csvProgressBar = qs('#csvProgressBar');
 
     const listWrap = qs('#listWrap');
     const listBody = qs('#listBody');
@@ -785,7 +799,7 @@
     // ------------------------------
     function render() {
       // Toggle empty/list panels
-      if (state.events.length === 0) {
+      if (state.events.length === 0 && !state.showCsvPanel) {
         emptyState.classList.remove('hidden');
         eventsPanel.classList.add('hidden');
       } else {
@@ -1188,6 +1202,28 @@
       render();
     }
 
+    function setCsvProgress(percent, label = 'Importing…') {
+      csvProgressWrap.classList.remove('hidden');
+      csvProgressLabel.textContent = label;
+      if (percent == null) {
+        csvProgressPercent.textContent = '';
+        csvProgressBar.classList.add('animate-pulse');
+        csvProgressBar.style.width = '100%';
+        return;
+      }
+      const clamped = Math.max(0, Math.min(100, Math.round(percent)));
+      csvProgressPercent.textContent = `${clamped}%`;
+      csvProgressBar.classList.remove('animate-pulse');
+      csvProgressBar.style.width = `${clamped}%`;
+    }
+
+    function resetCsvProgress() {
+      csvProgressBar.classList.remove('animate-pulse');
+      csvProgressBar.style.width = '0%';
+      csvProgressPercent.textContent = '0%';
+      csvProgressWrap.classList.add('hidden');
+    }
+
     function downloadCsvTemplate() {
       const header = [
         'title',
@@ -1202,7 +1238,20 @@
         'showAs',
         'priority'
       ].join(',');
-      const content = `${header}\n`;
+      const example = [
+        'Example Meeting',
+        '2026-03-15',
+        '09:00',
+        '2026-03-15',
+        '10:00',
+        'Conference Room A',
+        'Weekly sync',
+        'false',
+        '15',
+        'BUSY',
+        'NORMAL'
+      ].join(',');
+      const content = `${header}\n${example}\n`;
       const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1413,9 +1462,11 @@ END:VCALENDAR`;
     btnDeleteSelected.addEventListener('click', deleteSelected);
     btnToggleCsv.addEventListener('click', () => {
       csvPanel.classList.toggle('hidden');
+      state.showCsvPanel = !csvPanel.classList.contains('hidden');
       if (!csvPanel.classList.contains('hidden')) {
         csvText.focus();
       }
+      render();
     });
     btnQuickAdd.addEventListener('click', quickAddEvent);
     btnSavePreset.addEventListener('click', savePresetFromForm);
@@ -1423,17 +1474,38 @@ END:VCALENDAR`;
     btnImportCsv.addEventListener('click', () => {
       const text = csvText.value.trim();
       if (text) {
+        setCsvProgress(null, 'Importing pasted CSV…');
         importCsvText(text);
         csvText.value = '';
+        setCsvProgress(100, 'Import complete');
+        setTimeout(resetCsvProgress, 600);
       }
     });
     btnDownloadCsvTemplate.addEventListener('click', downloadCsvTemplate);
     csvFile.addEventListener('change', async (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
-      const text = await file.text();
-      importCsvText(text);
-      csvFile.value = '';
+      setCsvProgress(0, 'Reading file…');
+      const reader = new FileReader();
+      reader.onprogress = (evt) => {
+        if (evt.lengthComputable) {
+          setCsvProgress((evt.loaded / evt.total) * 100, 'Reading file…');
+        } else {
+          setCsvProgress(null, 'Reading file…');
+        }
+      };
+      reader.onerror = () => {
+        setCsvProgress(0, 'Failed to read file');
+        setTimeout(resetCsvProgress, 800);
+      };
+      reader.onload = () => {
+        setCsvProgress(100, 'Importing…');
+        importCsvText(String(reader.result || ''));
+        csvFile.value = '';
+        setCsvProgress(100, 'Import complete');
+        setTimeout(resetCsvProgress, 600);
+      };
+      reader.readAsText(file);
     });
 
     viewCardsBtn.addEventListener('click', () => {
