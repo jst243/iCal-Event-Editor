@@ -273,6 +273,11 @@
             <i data-lucide="upload" class="w-4 h-4"></i>
             Import
           </button>
+          <button id="btnDownloadCsvTemplate"
+            class="inline-flex items-center justify-center gap-2 bg-white border-2 border-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-all font-medium">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            Download Template
+          </button>
           <div class="text-xs text-gray-500">Headers supported: title,startDate,startTime,endDate,endTime,location,description,allDay,reminder,showAs,priority</div>
         </div>
       </div>
@@ -669,6 +674,7 @@
     const csvFile = qs('#csv_file');
     const csvText = qs('#csv_text');
     const btnImportCsv = qs('#btnImportCsv');
+    const btnDownloadCsvTemplate = qs('#btnDownloadCsvTemplate');
 
     const listWrap = qs('#listWrap');
     const listBody = qs('#listBody');
@@ -1182,6 +1188,32 @@
       render();
     }
 
+    function downloadCsvTemplate() {
+      const header = [
+        'title',
+        'startDate',
+        'startTime',
+        'endDate',
+        'endTime',
+        'location',
+        'description',
+        'allDay',
+        'reminder',
+        'showAs',
+        'priority'
+      ].join(',');
+      const content = `${header}\n`;
+      const blob = new Blob([content], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'bulk-events-template.csv';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
     // ------------------------------
     // Wizard (modal)
     // ------------------------------
@@ -1395,6 +1427,7 @@ END:VCALENDAR`;
         csvText.value = '';
       }
     });
+    btnDownloadCsvTemplate.addEventListener('click', downloadCsvTemplate);
     csvFile.addEventListener('change', async (e) => {
       const file = e.target.files && e.target.files[0];
       if (!file) return;
