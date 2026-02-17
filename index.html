@@ -514,7 +514,7 @@
       if (!time24) return { hour: '12', minute: '00', period: 'AM' };
       const [h, m] = time24.split(':');
       let hour = parseInt(h, 10);
-      const period = hour >= 12 ? 'PM' : 'AM';
+      const period = hour >= 12 ... 'PM' : 'AM';
       if (hour === 0) hour = 12; else if (hour > 12) hour -= 12;
       return { hour: String(hour), minute: m, period };
     }
@@ -523,7 +523,7 @@
       const datetime = `${date}T${time}:00`;
       return datetime.replace(/[-:]/g, '');
     }
-    function getPriorityNumber(p) { return p === 'HIGH' ? '1' : p === 'LOW' ? '9' : '5'; }
+    function getPriorityNumber(p) { return p === 'HIGH' ... '1' : p === 'LOW' ... '9' : '5'; }
     function validEvent(e) { return !!(e.title && e.startDate && (e.isAllDay || e.startTime)); }
     function formatDateDisplay(dateStr) {
       if (!dateStr) return '';
@@ -549,7 +549,7 @@
       if (!rem || rem === 'none') return 'None';
       const n = parseInt(rem, 10);
       if (n < 60) return `${n} min`;
-      if (n % 1440 === 0) return `${n / 1440} day${n === 1440 ? '' : 's'}`;
+      if (n % 1440 === 0) return `${n / 1440} day${n === 1440 ... '' : 's'}`;
       if (n % 60 === 0) return `${n / 60} hr`;
       return `${n} min`;
     }
@@ -827,16 +827,16 @@
       btnDownload.disabled = validCount === 0;
       btnDownload.className = `w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl transition-all shadow-md font-medium ${
         validCount > 0
-          ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 hover:shadow-lg'
+          ... 'bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:from-green-700 hover:to-emerald-700 hover:shadow-lg'
           : 'bg-gray-200 text-gray-400 cursor-not-allowed'
       }`;
       downloadLabel.textContent = `Download (${validCount})`;
 
       // Toggle all label/icon (shared)
       const allSelected = state.events.length > 0 && selectedCount === state.events.length;
-      toggleAllLabel.textContent = allSelected ? 'Deselect All' : 'Select All';
+      toggleAllLabel.textContent = allSelected ... 'Deselect All' : 'Select All';
       const icon = btnToggleAll.querySelector('i');
-      if (icon) icon.setAttribute('data-lucide', allSelected ? 'check-square' : 'square');
+      if (icon) icon.setAttribute('data-lucide', allSelected ... 'check-square' : 'square');
 
       // Clear Card & List containers each render
       cardsGrid.innerHTML = '';
@@ -865,14 +865,14 @@
 
           const card = document.createElement('div');
           card.className = `p-4 rounded-xl transition-all border-2 h-full flex ${
-            isSelected ? 'border-indigo-300 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 bg-white hover:shadow-md'
+            isSelected ... 'border-indigo-300 bg-indigo-50 shadow-md' : 'border-gray-200 hover:border-indigo-300 bg-white hover:shadow-md'
           }`;
 
           card.innerHTML = `
             <div class="flex items-start gap-3 w-full">
               <button data-action="toggle-select"
                 class="mt-1 text-gray-400 hover:text-indigo-600 transition-colors" aria-label="Toggle select">
-                <i data-lucide="${isSelected ? 'check-square' : 'square'}" class="w-5 h-5 ${isSelected ? 'text-indigo-600' : ''}"></i>
+                <i data-lucide="${isSelected ... 'check-square' : 'square'}" class="w-5 h-5 ${isSelected ... 'text-indigo-600' : ''}"></i>
               </button>
 
               <div class="flex-1 min-w-0">
@@ -885,7 +885,7 @@
                     <i data-lucide="clock" class="w-4 h-4 flex-shrink-0"></i>
                     <span class="truncate">${formatDateDisplay(summaryDate)} • ${time}</span>
                   </div>
-                  ${ev.location ? `<div class="text-gray-500 truncate">📍 ${ev.location}</div>` : ''}
+                  ${ev.location ... `<div class="text-gray-500 truncate">📍 ${ev.location}</div>` : ''}
                 </div>
 
                 <div class="mt-3 flex flex-wrap gap-2">
@@ -931,7 +931,7 @@
         state.events.forEach(ev => {
           const isSelected = state.selectedIds.has(ev.id);
           const title = ev.title || 'Untitled Event';
-          const dateLabel = ev.startDate ? formatDateDisplay(ev.startDate) : '—';
+          const dateLabel = ev.startDate ... formatDateDisplay(ev.startDate) : '—';
           const timeLabel = formatTimeLabel(ev);
           const reminderLabel = formatReminderLabel(ev.reminder);
           const prio = (ev.priority || 'NORMAL').toUpperCase();
@@ -942,12 +942,12 @@
           tr.innerHTML = `
             <td class="py-2 pr-2 align-top">
               <button data-action="toggle-select" class="text-indigo-600 hover:text-indigo-800" title="Toggle select">
-                <i data-lucide="${isSelected ? 'check-square' : 'square'}" class="w-4 h-4 ${isSelected ? 'text-indigo-600' : ''}"></i>
+                <i data-lucide="${isSelected ... 'check-square' : 'square'}" class="w-4 h-4 ${isSelected ... 'text-indigo-600' : ''}"></i>
               </button>
             </td>
             <td class="py-2 pr-2 align-top">
               <div class="font-medium text-gray-900 truncate max-w-[260px]">${title}</div>
-              ${ev.description ? `<div class="text-gray-500 truncate max-w-[340px]">${ev.description}</div>` : ''}
+              ${ev.description ... `<div class="text-gray-500 truncate max-w-[340px]">${ev.description}</div>` : ''}
             </td>
             <td class="py-2 pr-2 align-top text-gray-700">${dateLabel}</td>
             <td class="py-2 pr-2 align-top text-gray-700">${timeLabel}</td>
@@ -1040,7 +1040,7 @@
       const copy = {
         ...ev,
         id: nanoid(),
-        title: ev.title ? `${ev.title} (Copy)` : 'Untitled Event',
+        title: ev.title ... `${ev.title} (Copy)` : 'Untitled Event',
         isNew: false
       };
       state.events.push(copy);
@@ -1108,8 +1108,8 @@
       }
       const presetId = qaPreset.value;
       const preset = state.presets.find(p => p.id === presetId) || state.presets[0];
-      const duration = preset ? parseInt(preset.duration, 10) || 0 : 0;
-      const endTime = duration ? addMinutesToTime(time, duration) : time;
+      const duration = preset ... parseInt(preset.duration, 10) || 0 : 0;
+      const endTime = duration ... addMinutesToTime(time, duration) : time;
 
       const newEvent = {
         id: nanoid(),
@@ -1121,8 +1121,8 @@
         location: '',
         description: '',
         isAllDay: false,
-        reminder: preset ? preset.reminder : '15',
-        showAs: preset ? preset.showAs : 'BUSY',
+        reminder: preset ... preset.reminder : '15',
+        showAs: preset ... preset.showAs : 'BUSY',
         priority: 'NORMAL',
         isNew: false
       };
@@ -1141,7 +1141,7 @@
       const preset = {
         id: nanoid(),
         name,
-        duration: Number.isFinite(duration) ? duration : 60,
+        duration: Number.isFinite(duration) ... duration : 60,
         reminder: presetReminder.value,
         showAs: presetShowAs.value
       };
@@ -1156,7 +1156,7 @@
       if (!rows.length) return;
       const header = rows[0].map(h => h.toLowerCase());
       const hasHeader = header.includes('title') || header.includes('startdate');
-      const dataRows = hasHeader ? rows.slice(1) : rows;
+      const dataRows = hasHeader ... rows.slice(1) : rows;
       const idx = (name) => header.indexOf(name);
 
       dataRows.forEach(r => {
@@ -1164,7 +1164,7 @@
         const get = (name, fallbackIdx) => {
           if (hasHeader) {
             const i = idx(name);
-            return i >= 0 ? r[i] : '';
+            return i >= 0 ... r[i] : '';
           }
           return r[fallbackIdx] || '';
         };
@@ -1187,9 +1187,9 @@
           id: nanoid(),
           title,
           startDate,
-          startTime: isAllDay ? '' : startTime,
+          startTime: isAllDay ... '' : startTime,
           endDate,
-          endTime: isAllDay ? '' : endTime,
+          endTime: isAllDay ... '' : endTime,
           location,
           description,
           isAllDay,
@@ -1272,7 +1272,7 @@
       state.editingId = id;
       state.showWizard = true;
 
-      modalTitle.textContent = ev.isNew ? 'Create New Event' : 'Edit Event';
+      modalTitle.textContent = ev.isNew ... 'Create New Event' : 'Edit Event';
       f_title.value = ev.title || '';
       f_allDay.checked = !!ev.isAllDay;
       f_startDate.value = ev.startDate || '';
@@ -1283,7 +1283,7 @@
       f_location.value = ev.location || '';
       f_showAs.value = ev.showAs || 'BUSY';
       f_priority.value = ev.priority || 'NORMAL';
-      f_reminder.value = ev.reminder ?? '15';
+      f_reminder.value = ev.reminder ...... '15';
       f_description.value = ev.description || '';
 
       const s = convertTo12Hour(ev.startTime || '');
@@ -1360,8 +1360,8 @@
 
     function toggleAllDayUI() {
       const allDay = f_allDay.checked;
-      startTimeBlock.style.display = allDay ? 'none' : '';
-      endTimeBlock.style.display = allDay ? 'none' : '';
+      startTimeBlock.style.display = allDay ... 'none' : '';
+      endTimeBlock.style.display = allDay ... 'none' : '';
     }
 
     // ------------------------------
@@ -1406,7 +1406,7 @@ SUMMARY:${title}`;
 
       ical += `
 STATUS:CONFIRMED
-TRANSP:${event.showAs === 'FREE' ? 'TRANSPARENT' : 'OPAQUE'}
+TRANSP:${event.showAs === 'FREE' ... 'TRANSPARENT' : 'OPAQUE'}
 X-MICROSOFT-CDO-BUSYSTATUS:${event.showAs}
 PRIORITY:${getPriorityNumber(event.priority)}`;
 
