@@ -40,6 +40,17 @@
         </div>
       </div>
 
+      <div id="sessionInfo" class="hidden mt-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+        <div class="text-sm text-indigo-900">
+          Signed in as <span id="sessionUsername" class="font-semibold"></span>
+        </div>
+        <button id="btnSignOut"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white border-2 border-indigo-200 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-100 transition-all shadow-sm font-medium">
+          <i data-lucide="log-out" class="w-4 h-4"></i>
+          Sign Out
+        </button>
+      </div>
+
       <!-- Actions: stack on small, inline on md+ -->
       <div class="flex flex-col sm:flex-row sm:flex-wrap gap-3 mt-6">
         <button id="btnAdd"
@@ -66,6 +77,38 @@
           <span id="deleteLabel">Delete (0)</span>
         </button>
       </div>
+    </div>
+
+    <div id="authPanel" class="bg-white rounded-2xl shadow-xl p-6 md:p-8 mb-6 border border-gray-100">
+      <h2 class="text-xl font-bold text-gray-800">Sign In Or Create Account</h2>
+      <p class="text-sm text-gray-600 mt-1">Accounts and event data are stored locally in this browser.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-4">
+        <div>
+          <label for="auth_username" class="block text-xs font-semibold text-gray-600 mb-1">Username</label>
+          <input id="auth_username" type="text" autocomplete="username" placeholder="jstallsworth"
+            class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+        </div>
+        <div>
+          <label for="auth_password" class="block text-xs font-semibold text-gray-600 mb-1">Password</label>
+          <input id="auth_password" type="password" autocomplete="current-password" placeholder="At least 6 characters"
+            class="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" />
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-4">
+        <button id="btnSignIn"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all font-medium">
+          <i data-lucide="log-in" class="w-4 h-4"></i>
+          Sign In
+        </button>
+        <button id="btnCreateAccount"
+          class="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-white border-2 border-indigo-200 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-50 transition-all font-medium">
+          <i data-lucide="user-plus" class="w-4 h-4"></i>
+          Create Account
+        </button>
+      </div>
+      <p id="authMessage" class="text-sm mt-3 min-h-[1.25rem] text-gray-600"></p>
     </div>
 
     <!-- Empty state -->
@@ -482,17 +525,34 @@
     // ------------------------------
     // State & utilities (parity with your TSX)
     // ------------------------------
+    const STORAGE_KEYS = {
+      accounts: 'ical_accounts_v1',
+      sessionUser: 'ical_session_user_v1',
+      userDataPrefix: 'ical_user_data_v1_'
+    };
+
     const state = {
       events: [],
       editingId: null,
       selectedIds: new Set(),
       showWizard: false,
       view: 'cards', // 'cards' | 'list' | 'calendar'
-      presets: []
+      presets: [],
+      accounts: [],
+      currentUser: null
     };
 
     const qs = (sel, el = document) => el.querySelector(sel);
     function nanoid() { return Date.now() + Math.floor(Math.random() * 1e6); }
+    function normalizeUsername(value) { return (value || '').trim().toLowerCase(); }
+    function getDefaultPresets() {
+      return [
+        { id: 'default', name: 'Default', duration: 60, reminder: '15', showAs: 'BUSY' }
+      ];
+    }
+    function getUserDataKey(username) {
+      return `${STORAGE_KEYS.userDataPrefix}${username}`;
+    }
 
     function convertTo24Hour(hour, minute, period) {
       let h = parseInt(hour, 10);
@@ -585,21 +645,92 @@
       }
       return rows.filter(r => r.some(cell => cell !== ''));
     }
-    function loadPresets() {
+    function loadAccounts() {
       try {
-        const raw = localStorage.getItem('ical_presets');
-        if (raw) state.presets = JSON.parse(raw);
+        const raw = localStorage.getItem(STORAGE_KEYS.accounts);
+        const parsed = raw ? JSON.parse(raw) : [];
+        state.accounts = Array.isArray(parsed) ? parsed : [];
       } catch (e) {
+        state.accounts = [];
+      }
+    }
+    function saveAccounts() {
+      localStorage.setItem(STORAGE_KEYS.accounts, JSON.stringify(state.accounts));
+    }
+    function restoreSessionUser() {
+      const username = normalizeUsername(localStorage.getItem(STORAGE_KEYS.sessionUser));
+      if (!username) return false;
+      const exists = state.accounts.some(a => a.username === username);
+      if (!exists) return false;
+      state.currentUser = username;
+      return true;
+    }
+    function saveSessionUser(username) {
+      state.currentUser = username;
+      localStorage.setItem(STORAGE_KEYS.sessionUser, username);
+    }
+    function clearSessionUser() {
+      state.currentUser = null;
+      localStorage.removeItem(STORAGE_KEYS.sessionUser);
+    }
+    function loadPresets() {
+      if (!state.currentUser) {
+        state.presets = getDefaultPresets();
+        return;
+      }
+      try {
+        const raw = localStorage.getItem(getUserDataKey(state.currentUser));
+        const parsed = raw ? JSON.parse(raw) : {};
+        state.events = Array.isArray(parsed.events) ? parsed.events : [];
+        state.presets = Array.isArray(parsed.presets) ? parsed.presets : [];
+      } catch (e) {
+        state.events = [];
         state.presets = [];
       }
       if (!state.presets.length) {
-        state.presets = [
-          { id: 'default', name: 'Default', duration: 60, reminder: '15', showAs: 'BUSY' }
-        ];
+        state.presets = getDefaultPresets();
       }
     }
     function savePresets() {
-      localStorage.setItem('ical_presets', JSON.stringify(state.presets));
+      if (!state.currentUser) return;
+      localStorage.setItem(getUserDataKey(state.currentUser), JSON.stringify({
+        events: state.events,
+        presets: state.presets
+      }));
+    }
+    function setAuthMessage(message, isError = false) {
+      authMessage.textContent = message || '';
+      authMessage.className = `text-sm mt-3 min-h-[1.25rem] ${isError ? 'text-red-600' : 'text-green-700'}`;
+    }
+    function setAuthenticatedUI(enabled) {
+      const disabled = !enabled;
+      if (disabled && state.showWizard) {
+        modalBackdrop.classList.add('hidden');
+        modalBackdrop.classList.remove('flex');
+        state.showWizard = false;
+      }
+      btnAdd.disabled = disabled;
+      btnToggleCsv.disabled = disabled;
+      btnQuickAdd.disabled = disabled;
+      btnSavePreset.disabled = disabled;
+      btnApplyBulk.disabled = disabled;
+      btnImportCsv.disabled = disabled;
+      csvFile.disabled = disabled;
+      qaTitle.disabled = disabled;
+      qaDate.disabled = disabled;
+      qaTime.disabled = disabled;
+      qaPreset.disabled = disabled;
+      presetName.disabled = disabled;
+      presetDuration.disabled = disabled;
+      presetReminder.disabled = disabled;
+      presetShowAs.disabled = disabled;
+      bulkDate.disabled = disabled;
+      bulkStartTime.disabled = disabled;
+      bulkEndTime.disabled = disabled;
+      bulkReminder.disabled = disabled;
+      bulkShowAs.disabled = disabled;
+      bulkAllDay.disabled = disabled;
+      csvText.disabled = disabled;
     }
 
     // Map our events to FullCalendar event objects
@@ -640,6 +771,17 @@
     // ------------------------------
     // DOM refs
     // ------------------------------
+    const authPanel = qs('#authPanel');
+    const authUsername = qs('#auth_username');
+    const authPassword = qs('#auth_password');
+    const btnSignIn = qs('#btnSignIn');
+    const btnCreateAccount = qs('#btnCreateAccount');
+    const authMessage = qs('#authMessage');
+    const sessionInfo = qs('#sessionInfo');
+    const sessionUsername = qs('#sessionUsername');
+    const btnSignOut = qs('#btnSignOut');
+
+    const btnAdd = qs('#btnAdd');
     const emptyState = qs('#emptyState');
     const eventsPanel = qs('#eventsPanel');
     const eventsCount = qs('#eventsCount');
@@ -784,6 +926,23 @@
     // Rendering
     // ------------------------------
     function render() {
+      const isSignedIn = !!state.currentUser;
+      authPanel.classList.toggle('hidden', isSignedIn);
+      sessionInfo.classList.toggle('hidden', !isSignedIn);
+      sessionUsername.textContent = state.currentUser || '';
+      setAuthenticatedUI(isSignedIn);
+
+      if (!isSignedIn) {
+        emptyState.classList.add('hidden');
+        eventsPanel.classList.add('hidden');
+        btnDeleteSelected.style.display = 'none';
+        downloadLabel.textContent = 'Download (0)';
+        if (window.lucide && typeof lucide.createIcons === 'function') {
+          lucide.createIcons();
+        }
+        return;
+      }
+
       // Toggle empty/list panels
       if (state.events.length === 0) {
         emptyState.classList.remove('hidden');
@@ -986,6 +1145,67 @@
       if (window.lucide && typeof lucide.createIcons === 'function') {
         lucide.createIcons();
       }
+
+      savePresets();
+    }
+
+    // ------------------------------
+    // Auth
+    // ------------------------------
+    function handleCreateAccount() {
+      const username = normalizeUsername(authUsername.value);
+      const password = authPassword.value || '';
+
+      if (username.length < 3) {
+        setAuthMessage('Username must be at least 3 characters.', true);
+        return;
+      }
+      if (password.length < 6) {
+        setAuthMessage('Password must be at least 6 characters.', true);
+        return;
+      }
+      const exists = state.accounts.some(a => a.username === username);
+      if (exists) {
+        setAuthMessage('That username already exists. Sign in instead.', true);
+        return;
+      }
+
+      state.accounts.push({ username, password });
+      saveAccounts();
+      saveSessionUser(username);
+      loadPresets();
+      state.selectedIds.clear();
+      authPassword.value = '';
+      setAuthMessage('Account created and signed in.');
+      render();
+    }
+
+    function handleSignIn() {
+      const username = normalizeUsername(authUsername.value);
+      const password = authPassword.value || '';
+      const account = state.accounts.find(a => a.username === username);
+
+      if (!account || account.password !== password) {
+        setAuthMessage('Invalid username or password.', true);
+        return;
+      }
+
+      saveSessionUser(username);
+      loadPresets();
+      state.selectedIds.clear();
+      authPassword.value = '';
+      setAuthMessage('');
+      render();
+    }
+
+    function handleSignOut() {
+      clearSessionUser();
+      state.events = [];
+      state.presets = getDefaultPresets();
+      state.selectedIds.clear();
+      state.editingId = null;
+      setAuthMessage('');
+      render();
     }
 
     // ------------------------------
@@ -1404,11 +1624,8 @@ END:VCALENDAR`;
     // ------------------------------
     // Wire up events
     // ------------------------------
-    const btnAdd = document.getElementById('btnAdd');
-    const btnDownloadEl = document.getElementById('btnDownload');
-
     btnAdd.addEventListener('click', addEvent);
-    btnDownloadEl.addEventListener('click', downloadICalFile);
+    btnDownload.addEventListener('click', downloadICalFile);
     btnToggleAll.addEventListener('click', toggleSelectAll);
     btnDeleteSelected.addEventListener('click', deleteSelected);
     btnToggleCsv.addEventListener('click', () => {
@@ -1482,8 +1699,24 @@ END:VCALENDAR`;
       if (e.key === 'Enter') { e.preventDefault(); saveEvent(); }
     });
 
+    btnCreateAccount.addEventListener('click', handleCreateAccount);
+    btnSignIn.addEventListener('click', handleSignIn);
+    btnSignOut.addEventListener('click', handleSignOut);
+    authPassword.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSignIn();
+      }
+    });
+
     // Initial render & icons
-    loadPresets();
+    loadAccounts();
+    if (restoreSessionUser()) {
+      loadPresets();
+    } else {
+      state.events = [];
+      state.presets = getDefaultPresets();
+    }
     render();
     if (window.lucide && typeof lucide.createIcons === 'function') {
       lucide.createIcons();
