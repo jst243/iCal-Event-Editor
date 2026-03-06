@@ -539,7 +539,8 @@
       view: 'cards', // 'cards' | 'list' | 'calendar'
       presets: [],
       accounts: [],
-      currentUser: null
+      currentUser: null,
+      storageAvailable: true
     };
 
     const qs = (sel, el = document) => el.querySelector(sel);
@@ -552,6 +553,38 @@
     }
     function getUserDataKey(username) {
       return `${STORAGE_KEYS.userDataPrefix}${username}`;
+    }
+    function storageGet(key) {
+      try {
+        return localStorage.getItem(key);
+      } catch (e) {
+        state.storageAvailable = false;
+        return null;
+      }
+    }
+    function storageSet(key, value) {
+      try {
+        localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        state.storageAvailable = false;
+        return false;
+      }
+    }
+    function storageRemove(key) {
+      try {
+        localStorage.removeItem(key);
+        return true;
+      } catch (e) {
+        state.storageAvailable = false;
+        return false;
+      }
+    }
+    function verifyStorageAvailability() {
+      const probeKey = 'ical_storage_probe_v1';
+      const ok = storageSet(probeKey, '1');
+      if (ok) storageRemove(probeKey);
+      return ok;
     }
 
     function convertTo24Hour(hour, minute, period) {
@@ -647,7 +680,7 @@
     }
     function loadAccounts() {
       try {
-        const raw = localStorage.getItem(STORAGE_KEYS.accounts);
+        const raw = storageGet(STORAGE_KEYS.accounts);
         const parsed = raw ? JSON.parse(raw) : [];
         state.accounts = Array.isArray(parsed) ? parsed : [];
       } catch (e) {
@@ -655,10 +688,10 @@
       }
     }
     function saveAccounts() {
-      localStorage.setItem(STORAGE_KEYS.accounts, JSON.stringify(state.accounts));
+      return storageSet(STORAGE_KEYS.accounts, JSON.stringify(state.accounts));
     }
     function restoreSessionUser() {
-      const username = normalizeUsername(localStorage.getItem(STORAGE_KEYS.sessionUser));
+      const username = normalizeUsername(storageGet(STORAGE_KEYS.sessionUser));
       if (!username) return false;
       const exists = state.accounts.some(a => a.username === username);
       if (!exists) return false;
@@ -667,11 +700,11 @@
     }
     function saveSessionUser(username) {
       state.currentUser = username;
-      localStorage.setItem(STORAGE_KEYS.sessionUser, username);
+      return storageSet(STORAGE_KEYS.sessionUser, username);
     }
     function clearSessionUser() {
       state.currentUser = null;
-      localStorage.removeItem(STORAGE_KEYS.sessionUser);
+      return storageRemove(STORAGE_KEYS.sessionUser);
     }
     function loadPresets() {
       if (!state.currentUser) {
@@ -679,7 +712,7 @@
         return;
       }
       try {
-        const raw = localStorage.getItem(getUserDataKey(state.currentUser));
+        const raw = storageGet(getUserDataKey(state.currentUser));
         const parsed = raw ? JSON.parse(raw) : {};
         state.events = Array.isArray(parsed.events) ? parsed.events : [];
         state.presets = Array.isArray(parsed.presets) ? parsed.presets : [];
@@ -693,7 +726,7 @@
     }
     function savePresets() {
       if (!state.currentUser) return;
-      localStorage.setItem(getUserDataKey(state.currentUser), JSON.stringify({
+      storageSet(getUserDataKey(state.currentUser), JSON.stringify({
         events: state.events,
         presets: state.presets
       }));
@@ -1153,8 +1186,12 @@
     // Auth
     // ------------------------------
     function handleCreateAccount() {
+      if (!state.storageAvailable) {
+        setAuthMessage('Local storage is unavailable in this browser context. Accounts cannot be saved.', true);
+        return;
+      }
       const username = normalizeUsername(authUsername.value);
-      const password = authPassword.value || '';
+      const password = (authPassword.value || '').trim();
 
       if (username.length < 3) {
         setAuthMessage('Username must be at least 3 characters.', true);
@@ -1171,18 +1208,29 @@
       }
 
       state.accounts.push({ username, password });
-      saveAccounts();
-      saveSessionUser(username);
+      if (!saveAccounts()) {
+        setAuthMessage('Could not save account data to this browser.', true);
+        return;
+      }
+      if (!saveSessionUser(username)) {
+        setAuthMessage('Account created but session could not be saved.', true);
+        return;
+      }
       loadPresets();
       state.selectedIds.clear();
+      authUsername.value = username;
       authPassword.value = '';
       setAuthMessage('Account created and signed in.');
       render();
     }
 
     function handleSignIn() {
+      if (!state.storageAvailable) {
+        setAuthMessage('Local storage is unavailable in this browser context. Accounts cannot be loaded.', true);
+        return;
+      }
       const username = normalizeUsername(authUsername.value);
-      const password = authPassword.value || '';
+      const password = (authPassword.value || '').trim();
       const account = state.accounts.find(a => a.username === username);
 
       if (!account || account.password !== password) {
@@ -1190,9 +1238,13 @@
         return;
       }
 
-      saveSessionUser(username);
+      if (!saveSessionUser(username)) {
+        setAuthMessage('Sign in succeeded, but session could not be persisted.', true);
+        return;
+      }
       loadPresets();
       state.selectedIds.clear();
+      authUsername.value = username;
       authPassword.value = '';
       setAuthMessage('');
       render();
@@ -1710,7 +1762,11 @@ END:VCALENDAR`;
     });
 
     // Initial render & icons
+    verifyStorageAvailability();
     loadAccounts();
+    if (!state.storageAvailable) {
+      setAuthMessage('Local storage is unavailable. Account features require local storage.', true);
+    }
     if (restoreSessionUser()) {
       loadPresets();
     } else {
