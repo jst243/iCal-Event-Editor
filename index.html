@@ -644,6 +644,16 @@
       const mm = (total % 60).toString().padStart(2, '0');
       return `${hh}:${mm}`;
     }
+    function getNextHourDefaults(now = new Date()) {
+      const nextHour = new Date(now);
+      nextHour.setMinutes(0, 0, 0);
+      nextHour.setHours(nextHour.getHours() + 1);
+      const endHour = new Date(nextHour);
+      endHour.setHours(endHour.getHours() + 1);
+      const startTime = `${nextHour.getHours().toString().padStart(2, '0')}:00`;
+      const endTime = `${endHour.getHours().toString().padStart(2, '0')}:00`;
+      return { startTime, endTime };
+    }
     function parseCsv(text) {
       const rows = [];
       let row = [];
@@ -918,13 +928,14 @@
         },
         // Click a date to add a new draft event and open the editor
         dateClick: (info) => {
+          const { startTime, endTime } = getNextHourDefaults();
           const newEvent = {
             id: nanoid(),
             title: '',
             startDate: info.dateStr,
-            startTime: '09:00',
+            startTime,
             endDate: info.dateStr,
-            endTime: '10:00',
+            endTime,
             location: '',
             description: '',
             isAllDay: true,
@@ -1028,6 +1039,10 @@
         opt.textContent = `${p.name} (${p.duration}m)`;
         qaPreset.appendChild(opt);
       });
+      if (!qaTime.value) {
+        const { startTime } = getNextHourDefaults();
+        qaTime.value = startTime;
+      }
 
       // Toggle view containers
       if (state.view === 'cards') {
@@ -1264,13 +1279,14 @@
     // CRUD & selection
     // ------------------------------
     function addEvent() {
+      const { startTime, endTime } = getNextHourDefaults();
       const newEvent = {
         id: nanoid(),
         title: '',
         startDate: '',
-        startTime: '09:00',
+        startTime,
         endDate: '',
-        endTime: '10:00',
+        endTime,
         location: '',
         description: '',
         isAllDay: false,
